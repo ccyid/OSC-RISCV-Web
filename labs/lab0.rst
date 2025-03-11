@@ -6,15 +6,15 @@ Lab 0: Environment Setup
 Introduction
 *************
 In Lab 0, you need to prepare the environment for future development.
-You should install the target toolchain, and use them to build a bootable image for rpi3.
+You should install the target toolchain and use it to build a bootable image for the VisionFive 2 (VF2) board.
 
 *****************
 Goals of this lab
 *****************
 
 * Set up the development environment.
-* Understand what's cross-platform development.
-* Test your rpi3.
+* Understand cross-platform development.
+* Test your VF2 board.
 
 .. important::
   This lab is an introductory lab.
@@ -28,219 +28,156 @@ Cross-Platform Development
 Cross Compiler
 ##############
 
-Rpi3 uses ARM Cortex-A53 CPU.
-To compile your source code to 64-bit ARM machine code, you need a cross compiler if you develop
-on a non-ARM64 environment.
+VF2 uses the StarFive JH-7110 System-on-Chip (SoC) with a 64-bit RISC-V processor.
+To compile your source code to 64-bit RISC-V machine code, you need a cross compiler if you develop
+on a non-RISC-V environment.
 
 .. admonition:: Todo
 
-    Install a cross compiler on your host computer.
+    Install the RISC-V unknown-elf toolchain on your Linux host computer.
+    You can build the toolchain from source by following these steps:
 
-Linker
-######
+    1. **Install the necessary dependencies:**
 
-You might not notice the existence of linkers before.
-It's because the compiler uses the default linker script for you. (``ld --verbose`` to check the content)
-In bare-metal programming, you should set the memory layout yourself.
+       On Ubuntu, execute the following command:
 
-This is an incomplete linker script for you.
-You should extend it in the following lab.
+       ::
+       
+           sudo apt-get install autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev ninja-build
 
-.. code-block:: none
-  :linenos:
+    2. **Clone the RISC-V GNU toolchain repository:**
 
-  SECTIONS
-  {
-    . = 0x80000;
-    .text : { *(.text) }
-  }
+       ::
+       
+           git clone https://github.com/riscv-collab/riscv-gnu-toolchain
+           cd riscv-gnu-toolchain
 
+    3. **Configure and build the toolchain:**
 
-QEMU
-####
+       ::
+       
+           ./configure --prefix=/opt/riscv --with-arch=rv64gc --with-abi=lp64d
+           make
 
-In cross-platform development,
-it's easier to validate your code on an emulator first.
-You can use QEMU to test your code first before validating them on a real rpi3.
+       This process will install the toolchain binaries in the `/opt/riscv` directory.
 
-.. warning::
-  Although QEMU provides a machine option for rpi3, it doesn't behave the same as a real rpi3.
-  You should validate your code on your rpi3, too.
+    4. **Add the toolchain to your PATH:**
+
+       ::
+       
+           export PATH=/opt/riscv/bin:$PATH
+
+    For more detailed instructions, refer to the official repository: https://github.com/riscv-collab/riscv-gnu-toolchain
+
+Emulator
+########
+
+An emulator allows you to run and test your RISC-V applications on your host machine without the actual hardware.
+QEMU is a popular emulator that supports RISC-V architecture.
 
 .. admonition:: Todo
 
-    Install ``qemu-system-aarch64``.
+    Install QEMU on your host computer.
+    Follow the instructions specific to your operating system to install QEMU with RISC-V support.
 
+Debugger
+########
 
-********************************
-From Source Code to Kernel Image
-********************************
+For debugging purposes, you can use GDB along with QEMU or directly with the VF2 hardware.
 
-You have the basic knowledge of the toolchain for cross-platform development. Now, it’s time to practice them.
+.. admonition:: Todo
 
-From Source Code to Object Files
-################################
+    Ensure GDB is installed on your host computer.
+    You can use the RISC-V GNU toolchain's GDB or install it separately.
 
-Source code is converted to object files by a cross compiler.
-After saving the following assembly as ``a.S``,
-you can convert it to an object file by ``aarch64-linux-gnu-gcc -c a.S``.
-Or if you would like to, you can also try llvm’s linker ``clang -mcpu=cortex-a53 --target=aarch64-rpi3-elf -c a.S``,
-especially if you are trying to develop on macOS.
+****************
+Deploy to VF2
+****************
 
-.. code-block:: c
+Recover OpenSBI and U-Boot (Optional)
+#####################################
 
-  .section ".text"
-  _start:
-    wfe
-    b _start
+In case you need to recover or update the bootloader on your VF2, you can follow these steps.
 
-From Object Files to ELF
+.. admonition:: Todo
+
+    1. Download the latest recovery binary (``jh7110-recovery-<Version>.bin``) from the official repository: https://github.com/starfive-tech/Tools/tree/master/recovery
+    2. Connect the jumper wires between the USB-to-Serial converter and the Debug pins of VF2's 40-pin GPIO header.
+    3. Set the boot mode jumpers (Switch_2) on your board to UART mode (RGPIO_1, RGPIO_0: 1,1).
+    4. Configure the serial port baud rate to ``115200`` bps.
+    5. Power up the board; you should see an output like ``CCCCCCCCCCCCCCCCCCCCCC``.
+    6. Transfer the recovery binary using XMODEM.
+    7. Follow the on-screen instructions to update the SPL and U-Boot binaries.
+    8. Power off and switch the jumpers back to Flash mode (RGPIO_1, RGPIO_0: 0,0).
+
+For detailed instructions, refer to the official guide: https://doc-en.rvspace.org/VisionFive2/Quick_Start_Guide/VisionFive2_SDK_QSG/recovering_bootloader%20-%20vf2.html
+
+Prepare a Bootable Image
 ########################
 
-A linker links object files to an ELF file.
-An ELF file can be loaded and executed by program loaders.
-Program loaders are usually provided by the operating system in a regular development environment.
-In bare-metal programming, ELF can be loaded by some bootloaders.
-
-
-To convert the object file from the previous step to an ELF file,
-you can save the provided linker script as ``linker.ld``, and run the following command.
-
-.. code-block:: none
-
-  # On GNU LD
-  aarch64-linux-gnu-ld -T linker.ld -o kernel8.elf a.o
-  # On LLVM
-  ld.lld -m aarch64elf -T linker.ld -o kernel8.elf a.o
-
-From ELF to Kernel Image
-########################
-
-Rpi3's bootloader can't load ELF files.
-Hence, you need to convert the ELF file to a raw binary image.
-You can use ``objcopy`` to convert ELF files to raw binary.
-
-.. code-block:: none
-
-  aarch64-linux-gnu-objcopy -O binary kernel8.elf kernel8.img
-  # Or
-  llvm-objcopy --output-target=aarch64-rpi3-elf -O binary kernel8.elf kernel8.img
-
-Check on QEMU
-#############
-
-After building, you can use QEMU to see the dumped assembly.
-
-.. code-block:: none
-
-  qemu-system-aarch64 -M raspi3b -kernel kernel8.img -display none -d in_asm
+To boot your VF2, you need to prepare a bootable SD card with the appropriate images.
 
 .. admonition:: Todo
 
-    Build your first kernel image, and check it on QEMU.
+    1. Create a VFAT partition image:
+       ::
+       
+           dd if=/dev/zero of=starfive-visionfive2-vfat.part bs=512 count=131072
+           mkfs.vfat starfive-visionfive2-vfat.part
 
-*******************
-Deploy to REAL Rpi3
-*******************
+    2. Prepare the necessary input files:
+       - ``u-boot-spl.bin.normal.out``
+       - ``visionfive2_fw_payload.img``
+       - ``starfive-visionfive2-vfat.part``
 
-Flash Bootable Image to SD Card
-###############################
+    3. Create a ``vf2-genimage.cfg`` configuration file with the following content:
+       ::
+       
+           image sdcard.img {
+               hdimage {
+                   gpt = true
+               }
+               partition spl {
+                   image = "u-boot-spl.bin.normal.out"
+                   partition-type-uuid = 2E54B353-1271-4842-806F-E436D6AF6985
+                   offset = 2M
+                   size = 2M
+               }
+               partition uboot {
+                   image = "visionfive2_fw_payload.img"
+                   partition-type-uuid = 5B193300-FC78-40CD-8002-E86C45580B47
+                   offset = 4M
+                   size = 4M
+               }
+               partition image {
+                   partition-type-uuid = EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
+                   image = "starfive-visionfive2-vfat.part"
+                   offset = 8M
+                   size = 64M
+               }
+           }
 
-To prepare a bootable image for rpi3, you have to prepare at least the following stuff.
+    4. Generate the SD card image using ``genimage``:
+       ::
+       
+           ./genimage --config vf2-genimage.cfg
 
-* An FAT16/32 partition contains
+    5. Flash the generated ``sdcard.img`` to your SD card:
+       ::
+       
+           sudo dd if=sdcard.img of=/dev/sdX
 
-  * Firmware for GPU.
+       Replace ``/dev/sdX`` with the appropriate device identifier for your SD card.
 
-  * Kernel image.(kernel8.img)
+For detailed instructions, refer to: https://hackmd.io/@chiahsuantw/vf2-sdcard
 
-There are two ways to do it.
+Connect the TTY-to-USB to VF2
+#############################
 
-1.
-  We already prepared a `bootable image
-  <https://github.com/nycu-caslab/OSC2024/raw/main/supplement/nycuos.img>`_.
-
-  You can use the following command to flash it to your SD card.
-
-  .. code-block:: none
-
-    dd if=nycuos.img of=/dev/sdb
-
-  .. warning:: /dev/sdb should be replaced by your SD card device. You can check it by `lsblk`
-
-  It's already partition and contains a FAT32 filesystem with firmware inside.
-  You can mount the partition to check.
-
-2.
-  Partition the disk and prepare the booting firmware yourself.
-  You can download the firmware from
-  https://github.com/raspberrypi/firmware/tree/master/boot
-
-  bootcode.bin, fixup.dat and start.elf are essentials.
-  More information about pi3's booting could be checked on the official website
-  https://www.raspberrypi.org/documentation/configuration/boot_folder.md
-  https://www.raspberrypi.org/documentation/hardware/raspberrypi/bootmodes/README.md
-
-  Finally, put the firmware and your kernel image into the FAT partition.
-
-  .. important::
-    Besides using ``mkfs.fat -F 32`` to create a FAT32 filesystem, you should also set the partition type to FAT.
-
+To interact with the VF2 via serial console:
 
 .. admonition:: Todo
 
-    Use either one of the methods to set up your SD card.
-
-Interact with Rpi3
-##################
-
-In our provided bootable image, it contains a kernel image that can echoes what you type through UART.
-You can use it to test if your Lab kits function well.
-
-1. If you use method 2 to set up your bootable image, you should download `kernel8.img <https://github.com/nycu-caslab/OSC2024/raw/main/supplement/kernel8.img>`_
-, and put it into your boot partition. It's identical to the one in the provided bootable image.
-
-2. Plug in the UART to USB converter to your host machine, and open it through a serial console such as screen or putty with the correct baud rate.
-
-3. Connect TX, RX, GND to the corresponding pins on rpi3, and turn on your rpi3. You can follow the picture below to set up your UART.
-
-4. After your rpi3 powers on, you can type some letters, and your serial console should print what you just typed.
-
-.. code-block:: none
-
-  screen /dev/ttyUSB0 115200
-
-.. image:: images/UART.png
-
-*********
-Debugging
-*********
-
-Debug on QEMU
-#############
-
-Debugging on QEMU is a relatively easier way to validate your code.
-QEMU could dump memory, registers, and expose them to a debugger.
-You can use the following command waiting for gdb connection.
-
-.. code-block:: none
-
-  qemu-system-aarch64 -M raspi3b -kernel kernel8.img -display none -S -s
-
-Then you can use the following command in gdb to load debugging information and connect to QEMU.
-
-.. code-block:: none
-
-  file kernel8.elf
-  target remote :1234
-
-.. important::
-  Your gdb should also be cross-platform gdb.
-
-
-Debug on Real Rpi3
-##################
-
-You could either use print log or JTAG to debug on a real rpi3.
-We don't provide JTAG in this course, you can try it if you have one.
-https://metebalci.com/blog/bare-metal-raspberry-pi-3b-jtag/
+   
+::contentReference[oaicite:3]{index=3}
+ 
