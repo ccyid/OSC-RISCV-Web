@@ -118,7 +118,11 @@ To interact with the VF2 via a serial console, follow these steps:
    
        sudo apt-get install minicom
 
-3. **Configure the Serial Connection:**
+3. **Power On the VF2:**
+
+   With the serial connection established, power on the VF2 board. You should observe boot messages in the terminal emulator, indicating successful communication.
+
+4. **Establish the Serial Connection:**
 
    - Determine the device name assigned to the USB-to-Serial converter. Typically, it appears as `/dev/ttyUSB0` or similar. You can identify it by running:
 
@@ -134,15 +138,6 @@ To interact with the VF2 via a serial console, follow these steps:
 
    Adjust the device name (`/dev/ttyUSB0`) as necessary based on your system.
 
-4. **Power On the VF2:**
-
-   With the serial connection established, power on the VF2 board. You should observe boot messages in the terminal emulator, indicating successful communication.
-
-5. **Log In to the VF2:**
-
-   Once the boot process completes, you will be prompted to log in. 
-
-   After logging in, you can interact with the VF2's operating system via the serial console.
 
 Debugging
 #########
