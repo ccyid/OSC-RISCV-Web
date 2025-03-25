@@ -15,7 +15,7 @@ Goals of this lab
 *****************
 
 - Implement a bootloader that loads kernel images through UART.
-- Implement a simple memory allocator. [oai_citation_attribution:0‡GitHub](https://github.com/nycu-caslab/CO2025?utm_source=chatgpt.com)
+- Implement a simple memory allocator.
 - Understand the concept and usage of initial ramdisk.
 - Understand the structure and purpose of device trees.
 
