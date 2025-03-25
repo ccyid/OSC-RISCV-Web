@@ -150,7 +150,7 @@ Effective debugging is crucial for development. Here's how to set up debugging f
 
    ::
    
-       sudo apt-get install gdb-multiarch
+       sudo apt install gdb-multiarch
 
 2. **Debugging with QEMU:**
 
