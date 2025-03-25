@@ -174,10 +174,119 @@ For detailed instructions, refer to: https://hackmd.io/@chiahsuantw/vf2-sdcard
 Connect the TTY-to-USB to VF2
 #############################
 
-To interact with the VF2 via serial console:
+To interact with the VF2 via a serial console, follow these steps:
 
-.. admonition:: Todo
+1. **Connect the USB-to-Serial Converter:**
 
+   - Identify the UART pins on the VF2's 40-pin GPIO header.
+   - Connect the USB-to-Serial converter to your host computer and to the VF2's UART pins. Ensure the connections are as follows:
+
+     - **GND** on the converter to **GND** on the VF2.
+     - **TXD** on the converter to **RXD** on the VF2.
+     - **RXD** on the converter to **TXD** on the VF2.
+
+   Refer to the VF2's hardware documentation for the exact pin locations.
+
+2. **Install Serial Communication Software:**
+
+   On your host computer, install a terminal emulator such as `minicom` or `screen`. For example, to install `minicom` on Ubuntu:
+
+   ::
    
-::contentReference[oaicite:3]{index=3}
+       sudo apt-get install minicom
+
+3. **Configure the Serial Connection:**
+
+   - Determine the device name assigned to the USB-to-Serial converter. Typically, it appears as `/dev/ttyUSB0` or similar. You can identify it by running:
+
+     ::
+     
+         dmesg | grep tty
+
+   - Launch `minicom` with the appropriate device and baud rate settings. For example: [oai_citation_attribution:0‡img.iceasy.com](https://img.iceasy.com/product/product/files/202204/8a8a8a1a7fe2b57a01804fd8c8860cc2.pdf?utm_source=chatgpt.com)
+
+     ::
+     
+         sudo minicom -D /dev/ttyUSB0 -b 115200
+
+     Ensure the serial parameters are set to:
+
+     - **Baud Rate:** 115200
+     - **Data Bits:** 8
+     - **Stop Bits:** 1
+     - **Parity:** None
+
+   Adjust the device name (`/dev/ttyUSB0`) as necessary based on your system.
+
+4. **Power On the VF2:**
+
+   With the serial connection established, power on the VF2 board. You should observe boot messages in the terminal emulator, indicating successful communication.
+
+5. **Log In to the VF2:**
+
+   Once the boot process completes, you will be prompted to log in. Use the default credentials:
+
+   - **Username:** `root` [oai_citation_attribution:1‡CSDN Blog](https://blog.csdn.net/qq_43355647/article/details/127304784?utm_source=chatgpt.com)
+   - **Password:** `starfive` [oai_citation_attribution:2‡Elecfans Forum](https://bbs.elecfans.com/jishu_2369981_1_1.html?utm_source=chatgpt.com)
+
+   After logging in, you can interact with the VF2's operating system via the serial console.
+
+Debugging
+#########
+
+Effective debugging is crucial for development. Here's how to set up debugging for the VF2:
+
+1. **Install GDB:**
+
+   Ensure that the GNU Debugger (GDB) is installed on your host computer. If you've built the RISC-V GNU toolchain as previously instructed, GDB should be included. Otherwise, install it separately:
+
+   ::
+   
+       sudo apt-get install gdb-multiarch
+
+2. **Debugging with QEMU:**
+
+   To debug your applications using QEMU:
+
+   - Start QEMU with the `-s` and `-S` options to enable debugging:
+
+     ::
+     
+         qemu-system-riscv64 -M virt -kernel path/to/your/kernel.elf -nographic -s -S
+
+     This command starts QEMU and waits for a debugger to connect.
+
+   - In another terminal, launch GDB and connect to QEMU:
+
+     ::
+     
+         riscv64-unknown-elf-gdb
+         (gdb) target remote localhost:1234
+
+   You can now set breakpoints, step through code, and inspect variables within GDB.
+
+3. **Debugging on the VF2 Hardware:**
+
+   For on-target debugging:
+
+   - Ensure that GDB and the GDB server are installed on the VF2.
+
+   - On the VF2, start the GDB server, specifying the target application and port:
+
+     ::
+     
+         gdbserver :1234 /path/to/your/application
+
+   - On your host computer, connect GDB to the VF2:
+
+     ::
+     
+         riscv64-unknown-elf-gdb
+         (gdb) target remote vf2_ip_address:1234
+
+   Replace `vf2_ip_address` with the actual IP address of your VF2 board. You can now perform remote debugging from your host machine.
+
+**Note:** Ensure that your firewall settings allow for the necessary network connections between your host computer and the VF2.
+
+By completing these steps, you have set up the development environment, prepared the VF2 for deployment, and configured debugging tools to aid in your development process.
  
