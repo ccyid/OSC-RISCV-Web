@@ -115,61 +115,8 @@ For detailed instructions, refer to the official guide: https://doc-en.rvspace.o
 Prepare a Bootable Image
 ########################
 
-To boot your VF2, you need to prepare a bootable SD card with the appropriate images.
+To boot your VF2, you need to prepare a bootable SD card with the appropriate images as provided.
 
-.. admonition:: Todo
-
-    1. Create a VFAT partition image:
-       ::
-       
-           dd if=/dev/zero of=starfive-visionfive2-vfat.part bs=512 count=131072
-           mkfs.vfat starfive-visionfive2-vfat.part
-
-    2. Prepare the necessary input files:
-       - ``u-boot-spl.bin.normal.out``
-       - ``visionfive2_fw_payload.img``
-       - ``starfive-visionfive2-vfat.part``
-
-    3. Create a ``vf2-genimage.cfg`` configuration file with the following content:
-       ::
-       
-           image sdcard.img {
-               hdimage {
-                   gpt = true
-               }
-               partition spl {
-                   image = "u-boot-spl.bin.normal.out"
-                   partition-type-uuid = 2E54B353-1271-4842-806F-E436D6AF6985
-                   offset = 2M
-                   size = 2M
-               }
-               partition uboot {
-                   image = "visionfive2_fw_payload.img"
-                   partition-type-uuid = 5B193300-FC78-40CD-8002-E86C45580B47
-                   offset = 4M
-                   size = 4M
-               }
-               partition image {
-                   partition-type-uuid = EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
-                   image = "starfive-visionfive2-vfat.part"
-                   offset = 8M
-                   size = 64M
-               }
-           }
-
-    4. Generate the SD card image using ``genimage``:
-       ::
-       
-           ./genimage --config vf2-genimage.cfg
-
-    5. Flash the generated ``sdcard.img`` to your SD card:
-       ::
-       
-           sudo dd if=sdcard.img of=/dev/sdX
-
-       Replace ``/dev/sdX`` with the appropriate device identifier for your SD card.
-
-For detailed instructions, refer to: https://hackmd.io/@chiahsuantw/vf2-sdcard
 
 Connect the TTY-to-USB to VF2
 #############################
@@ -203,7 +150,7 @@ To interact with the VF2 via a serial console, follow these steps:
      
          dmesg | grep tty
 
-   - Launch `minicom` with the appropriate device and baud rate settings. For example: [oai_citation_attribution:0‡img.iceasy.com](https://img.iceasy.com/product/product/files/202204/8a8a8a1a7fe2b57a01804fd8c8860cc2.pdf?utm_source=chatgpt.com)
+   - Launch `minicom` with the appropriate device and baud rate settings. For example: 
 
      ::
      
@@ -224,10 +171,7 @@ To interact with the VF2 via a serial console, follow these steps:
 
 5. **Log In to the VF2:**
 
-   Once the boot process completes, you will be prompted to log in. Use the default credentials:
-
-   - **Username:** `root` [oai_citation_attribution:1‡CSDN Blog](https://blog.csdn.net/qq_43355647/article/details/127304784?utm_source=chatgpt.com)
-   - **Password:** `starfive` [oai_citation_attribution:2‡Elecfans Forum](https://bbs.elecfans.com/jishu_2369981_1_1.html?utm_source=chatgpt.com)
+   Once the boot process completes, you will be prompted to log in. 
 
    After logging in, you can interact with the VF2's operating system via the serial console.
 
