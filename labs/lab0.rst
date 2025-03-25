@@ -126,18 +126,11 @@ To interact with the VF2 via a serial console, follow these steps:
      
          dmesg | grep tty
 
-   - Launch `minicom` with the appropriate device and baud rate settings. For example: 
+   - Launch `screen` or `minicom` with the appropriate device and baud rate settings. For example: 
 
      ::
      
-         sudo minicom -D /dev/ttyUSB0 -b 115200
-
-     Ensure the serial parameters are set to:
-
-     - **Baud Rate:** 115200
-     - **Data Bits:** 8
-     - **Stop Bits:** 1
-     - **Parity:** None
+         sudo screen /dev/ttyUSB0 115200
 
    Adjust the device name (`/dev/ttyUSB0`) as necessary based on your system.
 
