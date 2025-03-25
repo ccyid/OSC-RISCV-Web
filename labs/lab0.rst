@@ -94,24 +94,6 @@ For debugging purposes, you can use GDB along with QEMU or directly with the VF2
 Deploy to VF2
 ****************
 
-Recover OpenSBI and U-Boot (Optional)
-#####################################
-
-In case you need to recover or update the bootloader on your VF2, you can follow these steps.
-
-.. admonition:: Todo
-
-    1. Download the latest recovery binary (``jh7110-recovery-<Version>.bin``) from the official repository: https://github.com/starfive-tech/Tools/tree/master/recovery
-    2. Connect the jumper wires between the USB-to-Serial converter and the Debug pins of VF2's 40-pin GPIO header.
-    3. Set the boot mode jumpers (Switch_2) on your board to UART mode (RGPIO_1, RGPIO_0: 1,1).
-    4. Configure the serial port baud rate to ``115200`` bps.
-    5. Power up the board; you should see an output like ``CCCCCCCCCCCCCCCCCCCCCC``.
-    6. Transfer the recovery binary using XMODEM.
-    7. Follow the on-screen instructions to update the SPL and U-Boot binaries.
-    8. Power off and switch the jumpers back to Flash mode (RGPIO_1, RGPIO_0: 0,0).
-
-For detailed instructions, refer to the official guide: https://doc-en.rvspace.org/VisionFive2/Quick_Start_Guide/VisionFive2_SDK_QSG/recovering_bootloader%20-%20vf2.html
-
 Prepare a Bootable Image
 ########################
 
