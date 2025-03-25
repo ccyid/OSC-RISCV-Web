@@ -37,13 +37,7 @@ on a non-RISC-V environment.
     Install the RISC-V unknown-elf toolchain on your Linux host computer.
     You can build the toolchain from source by following these steps:
 
-    1. **Install the necessary dependencies:**
-
-       On Ubuntu, execute the following command:
-
-       ::
-       
-           sudo apt-get install autoconf automake autotools-dev curl python3 libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev ninja-build
+    1. **Install the necessary dependencies**
 
     2. **Clone the RISC-V GNU toolchain repository:**
 
