@@ -112,11 +112,11 @@ To interact with the VF2 via a serial console, follow these steps:
 
 2. **Install Serial Communication Software:**
 
-   On your host computer, install a terminal emulator such as `minicom` or `screen`. For example, to install `minicom` on Ubuntu:
+   On your host computer, install a terminal emulator such as `minicom` or `screen`. For example, to install `screen` on Ubuntu:
 
    ::
    
-       sudo apt-get install minicom
+       sudo apt install screen
 
 3. **Power On the VF2:**
 
