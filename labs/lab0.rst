@@ -6,15 +6,15 @@ Lab 0: Environment Setup
 Introduction
 *************
 In Lab 0, you need to prepare the environment for future development.
-You should install the target toolchain and use it to build a bootable image for the VisionFive 2 (VF2) board.
+You should install the target toolchain, and use them to build a bootable image for VF2.
 
 *****************
 Goals of this lab
 *****************
 
 * Set up the development environment.
-* Understand cross-platform development.
-* Test your VF2 board.
+* Understand what's cross-platform development.
+* Test your VF2.
 
 .. important::
   This lab is an introductory lab.
@@ -34,167 +34,209 @@ on a non-RISC-V environment.
 
 .. admonition:: Todo
 
-    Install the RISC-V unknown-elf toolchain on your Linux host computer.
-    You can build the toolchain from source by following these steps:
+    Install the cross compiler ``gcc-riscv64-unknown-elf`` on your host computer. #FIX (you can either install or build from source...)
 
-    1. **Install the necessary dependencies**
+#FIX Warning: recommend to do labs on linux
 
-    2. **Clone the RISC-V GNU toolchain repository:**
+Linker
+######
 
-       ::
-       
-           git clone https://github.com/riscv-collab/riscv-gnu-toolchain
-           cd riscv-gnu-toolchain
+You might not notice the existence of linkers before.
+It's because the compiler uses the default linker script for you. (``ld --verbose`` to check the content)
+In bare-metal programming, you should set the memory layout yourself.
 
-    3. **Configure and build the toolchain:**
+This is an incomplete linker script for you.
+You should extend it in the following lab.
 
-       ::
-       
-           ./configure --prefix=/opt/riscv --with-arch=rv64gc --with-abi=lp64d
-           make
+.. code-block:: 
 
-       This process will install the toolchain binaries in the `/opt/riscv` directory.
+  SECTIONS
+  {
+    . = 0x80200000;
+    .text : { *(.text) }
+  }
 
-    4. **Add the toolchain to your PATH:**
 
-       ::
-       
-           export PATH=/opt/riscv/bin:$PATH
+QEMU
+####
 
-    For more detailed instructions, refer to the official repository: https://github.com/riscv-collab/riscv-gnu-toolchain
+In cross-platform development,
+it's easier to validate your code on an emulator first.
+You can use QEMU to test your code first before validating them on a real VF2.
 
-Emulator
-########
-
-An emulator allows you to run and test your RISC-V applications on your host machine without the actual hardware.
-QEMU is a popular emulator that supports RISC-V architecture.
-
-.. admonition:: Todo
-
-    Install QEMU on your host computer.
-    Follow the instructions specific to your operating system to install QEMU with RISC-V support.
-
-Debugger
-########
-
-For debugging purposes, you can use GDB along with QEMU or directly with the VF2 hardware.
+.. warning::
+  QEMU provides a machine option ``virt`` (general machine) #FIX , it doesn't behave the same as a real VF2.
+  You should validate your code on your VF2, too.
 
 .. admonition:: Todo
 
-    Ensure GDB is installed on your host computer.
-    You can use the RISC-V GNU toolchain's GDB or install it separately.
+    Install ``qemu-system-riscv64``.
 
-****************
-Deploy to VF2
-****************
 
-Prepare a Bootable Image
+********************************
+From Source Code to Kernel Image
+********************************
+
+You have the basic knowledge of the toolchain for cross-platform development. Now, it’s time to practice them.
+
+From Source Code to Object Files
+################################
+
+Source code is converted to object files by a cross compiler.
+After saving the following assembly as ``a.S``,
+you can convert it to an object file by ``riscv64-unknown-elf-gcc -c a.S``.
+
+.. code-block::
+
+  .section ".text"
+  _start:
+    wfi
+    j _start
+
+From Object Files to ELF
 ########################
 
-To boot your VF2, you need to prepare a bootable SD card with the appropriate images as provided.
+A linker links object files to an ELF file.
+An ELF file can be loaded and executed by program loaders.
+Program loaders are usually provided by the operating system in a regular development environment.
+In bare-metal programming, ELF can be loaded by some bootloaders.
 
 
-Connect the TTY-to-USB to VF2
-#############################
+To convert the object file from the previous step to an ELF file,
+you can save the provided linker script as ``linker.ld``, and run the following command.
 
-To interact with the VF2 via a serial console, follow these steps:
+.. code-block::
 
-1. **Connect the USB-to-Serial Converter:**
+  riscv64-unknown-elf-ld -T linker.ld -o kernel.elf a.o
 
-   - Identify the UART pins on the VF2's 40-pin GPIO header.
-   - Connect the USB-to-Serial converter to your host computer and to the VF2's UART pins. Ensure the connections are as follows:
+From ELF to Kernel Image
+########################
 
-     - **GND** on the converter to **GND** on the VF2.
-     - **TXD** on the converter to **RXD** on the VF2.
-     - **RXD** on the converter to **TXD** on the VF2.
+VF2's bootloader can't load ELF files.
+Hence, you need to convert the ELF file to a raw binary image.
+You can use ``objcopy`` to convert ELF files to raw binary.
 
-   Refer to the VF2's hardware documentation for the exact pin locations.
+.. code-block:: 
 
-2. **Install Serial Communication Software:**
+  riscv64-unknown-elf-objcopy -O binary kernel.elf kernel.bin
 
-   On your host computer, install a terminal emulator such as `minicom` or `screen`. For example, to install `screen` on Ubuntu:
+Check on QEMU
+#############
 
-   ::
-   
-       sudo apt install screen
+After building, you can use QEMU to see the dumped assembly.
 
-3. **Power On the VF2:**
+.. code-block::
 
-   With the serial connection established, power on the VF2 board. You should observe boot messages in the terminal emulator, indicating successful communication.
+  qemu-system-riscv64 -M virt -kernel kernel.bin -display none -d in_asm
 
-4. **Establish the Serial Connection:**
+.. admonition:: Todo
 
-   - Determine the device name assigned to the USB-to-Serial converter. Typically, it appears as `/dev/ttyUSB0` or similar. You can identify it by running:
+    Build your first kernel image, and check it on QEMU.
 
-     ::
-     
-         dmesg | grep tty
+*******************
+Deploy to REAL VF2
+*******************
 
-   - Launch `screen` or `minicom` with the appropriate device and baud rate settings. For example: 
+From Kernel Image to FIT Image
+##############################
 
-     ::
-     
-         sudo screen /dev/ttyUSB0 115200
+install mkimage
 
-   Adjust the device name (`/dev/ttyUSB0`) as necessary based on your system.
+sudo apt-get install u-boot-tools
 
+kernel.its requires the following content:
+kernel.bin
+jh7110-starfive-visionfive-2-v1.3b.dtb
+initramfs.cpio #FIX make sure if it's required.
 
+mkimage -f src/kernel.its kernel.fit 
+
+fit get... #FIX
+
+Flash Bootable Image to SD Card
+###############################
+
+To prepare a bootable image for VF2, you have to prepare at least the following stuff.
+
+* A specific configured FAT16/32 partition contains #FIX
+
+  * Kernel FIT image (kernel.fit)
+  * U-boot config file (vf2_uEnv.txt)
+
+There are two ways to do it.
+
+1.
+  We already prepared a `bootable image
+  <https://github.com/nycu-caslab/OSC2024/raw/main/supplement/vf2-sdcard.img>`_. #FIX
+
+  You can use the following command to flash it to your SD card.
+
+  .. code-block::
+
+    dd if=vf2-sdcard.img of=/dev/sdb
+
+  .. warning:: /dev/sdb should be replaced by your SD card device. You can check it by `lsblk`
+
+  It's already partitioned with firmware inside and contains a FAT32 filesystem.
+  You can mount the partition to check.
+
+2.
+  You can also partition the disk and prepare the booting firmware yourself. See https://hackmd.io/@chiahsuantw/vf2-sdcard for details. #FIX
+  
+.. admonition:: Todo
+
+    Use either one of the methods to set up your SD card.
+
+Interact with VF2
+##################
+
+In our provided bootable image, it contains a kernel image that can echoes what you type through UART.
+You can use it to test if your Lab kits function well.
+
+1. If you use method 2 to set up your bootable image, you should download `kernel.bin <https://github.com/nycu-caslab/OSC2024/raw/main/supplement/kernel.bin>`_
+, and put it into your boot partition. It's identical to the one in the provided bootable image. #FIX
+
+2. Plug in the UART to USB converter to your host machine, and open it through a serial console such as screen or putty with the correct baud rate.
+
+3. Connect TX, RX, GND to the corresponding pins on VF2, and turn on your VF2. You can follow the picture below to set up your UART.
+
+4. After your VF2 powers on, you can type some letters, and your serial console should print what you just typed.
+
+.. code-block::
+
+  sudo screen /dev/ttyUSB0 115200
+
+.. image:: images/UART.png #FIX
+
+*********
 Debugging
-#########
+*********
 
-Effective debugging is crucial for development. Here's how to set up debugging for the VF2:
+Debug on QEMU
+#############
 
-1. **Install GDB:**
+Debugging on QEMU is a relatively easier way to validate your code.
+QEMU could dump memory, registers, and expose them to a debugger.
 
-   Ensure that the GNU Debugger (GDB) is installed on your host computer. If you've built the RISC-V GNU toolchain as previously instructed, GDB should be included. Otherwise, install it separately:
+.. admonition:: Todo
 
-   ::
-   
-       sudo apt install gdb-multiarch
+    Install ``gdb-multiarch`` on your host computer.
 
-2. **Debugging with QEMU:**
+You can use the following command waiting for gdb connection.
 
-   To debug your applications using QEMU:
+.. code-block::
 
-   - Start QEMU with the `-s` and `-S` options to enable debugging:
+  qemu-system-riscv64 -M virt -kernel kernel.bin -display none -S -s
 
-     ::
-     
-         qemu-system-riscv64 -M virt -kernel path/to/your/kernel.elf -nographic -s -S
+Then you can use the following command in gdb to load debugging information and connect to QEMU.
 
-     This command starts QEMU and waits for a debugger to connect.
+.. code-block::
 
-   - In another terminal, launch GDB and connect to QEMU:
+  file kernel.elf
+  target remote :1234
 
-     ::
-     
-         riscv64-unknown-elf-gdb
-         (gdb) target remote localhost:1234
+Debug on Real VF2
+##################
 
-   You can now set breakpoints, step through code, and inspect variables within GDB.
-
-3. **Debugging on the VF2 Hardware:**
-
-   For on-target debugging:
-
-   - Ensure that GDB and the GDB server are installed on the VF2.
-
-   - On the VF2, start the GDB server, specifying the target application and port:
-
-     ::
-     
-         gdbserver :1234 /path/to/your/application
-
-   - On your host computer, connect GDB to the VF2:
-
-     ::
-     
-         riscv64-unknown-elf-gdb
-         (gdb) target remote vf2_ip_address:1234
-
-   Replace `vf2_ip_address` with the actual IP address of your VF2 board. You can now perform remote debugging from your host machine.
-
-**Note:** Ensure that your firewall settings allow for the necessary network connections between your host computer and the VF2.
-
-By completing these steps, you have set up the development environment, prepared the VF2 for deployment, and configured debugging tools to aid in your development process.
- 
+You could either use print log or JTAG to debug on a real VF2.
+We don't provide JTAG in this course, you can try it if you have one.
